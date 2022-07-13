@@ -4,8 +4,8 @@
 #include "../res/level_tiles.h"
 #include "../res/player_sprite.h"
 
-UINT8 spriteX,spriteY;
-INT8 velocityX,velocityY;
+UINT8 player_position[2];
+INT8 player_velocity[2];
 
 void init_gfx() {
     // Turn the display on
@@ -19,59 +19,59 @@ void init_gfx() {
 
 void init_sprites() {
     // Starting position
-    spriteX=80;
-    spriteY=136;
+    player_position[0]=80;
+    player_position[1]=136;
     // Enable large sprites
     SPRITES_8x16;
     // Load player sprite
     set_sprite_data(0, 8, player_sprite);
     set_sprite_tile(0, 0);
-    move_sprite(0, spriteX, spriteY);
+    move_sprite(0, player_position[0], player_position[1]);
     SHOW_SPRITES;
 
     // Starting velocity
-    velocityX=0;
-    velocityY=0;
+    player_velocity[0]=0;
+    player_velocity[1]=0;
 }
 
-void move_sprites() {
+void move_player() {
         // Movement is broken up this way to allow for easy diagonal motion
         // Heavily inspired by:
         // https://laroldsjubilantjunkyard.com/tutorials/how-to-make-a-gameboy-game/joypad-input/
 
         // Vertical
         // Move up
-        if (joypad() & J_UP && spriteY > 8 ) {
-            velocityY=-1;
+        if (joypad() & J_UP && player_position[1] > 8 ) {
+            player_velocity[1]=-1;
         // Move down
-        } else if (joypad() & J_DOWN && spriteY < 136) {
-            velocityY=1;
+        } else if (joypad() & J_DOWN && player_position[1] < 136) {
+            player_velocity[1]=1;
         // Stop vertical
         } else {
-            velocityY=0;
+            player_velocity[1]=0;
         }
 
         // Horizontal
         // Move right
-        if (joypad() & J_RIGHT && spriteX < 156) {
-            velocityX=1;
+        if (joypad() & J_RIGHT && player_position[0] < 156) {
+            player_velocity[0]=1;
         // Move left
-        } else if (joypad() & J_LEFT && spriteX > 4) {
-            velocityX=-1;
+        } else if (joypad() & J_LEFT && player_position[0] > 4) {
+            player_velocity[0]=-1;
         // Stop horizontal
         } else {
-            velocityX=0;
+            player_velocity[0]=0;
         }
 
         // Apply velocity
-        spriteX+=velocityX;
-        spriteY+=velocityY;
+        player_position[0]+=player_velocity[0];
+        player_position[1]+=player_velocity[1];
 
-        // Position the first sprite at our spriteX and spriteY
+        // Position the first sprite at our player_position[0] and player_position[1]
         // All sprites are render 8 pixels to the left of their x position and 16 pixels ABOVE their actual y position
         // This means an object rendered at 0,0 will not be visible
         // x+4 and y+8 should center the 8x16 tile at our x and y position
-        move_sprite(0,spriteX+4,spriteY+8);
+        move_sprite(0,player_position[0]+4,player_position[1]+8);
 }
 
 void main(void)
@@ -84,7 +84,7 @@ void main(void)
 
 
 		// Game main loop processing goes here
-        move_sprites();
+        move_player();
 
 		// Done processing, yield CPU and wait for start of next frame
         wait_vbl_done();
