@@ -9,6 +9,7 @@
 UINT8 player_position[2];
 INT8 player_velocity[2];
 UINT8 player_frame;
+uint8_t joypad_state;
 bool player_frame_op;
 
 void init_gfx() {
@@ -44,9 +45,12 @@ void init_player() {
 }
 
 void animate_player_right() {
-    if (player_frame == 20 ) {
+    if (player_frame >= 22) {
+        player_frame = 0;
+        player_frame_op = true;
+    } else if (player_frame == 21 ) {
         player_frame_op = false;
-    } else if (player_frame == 1) {
+    } else if (player_frame == 0) {
         player_frame_op = true;
     }
 
@@ -58,7 +62,10 @@ void animate_player_right() {
 }
 
 void animate_player_left() {
-    if (player_frame == 39 ) {
+    if (player_frame < 22 ) {
+        player_frame = 22;
+        player_frame_op = true;
+    } else if (player_frame >= 39 ) {
         player_frame_op = false;
     } else if (player_frame == 22) {
         player_frame_op = true;
@@ -73,16 +80,24 @@ void animate_player_left() {
 
 void move_player() {
         // Movement is broken up this way to allow for easy diagonal motion
-        // Heavily inspired by:
+        // Initially inspired by:
         // https://laroldsjubilantjunkyard.com/tutorials/how-to-make-a-gameboy-game/joypad-input/
 
         // Vertical
         // Move up
-        if (joypad() & J_UP && player_position[1] > 9 ) {
-            player_velocity[1]=-1;
+        if (joypad_state & J_UP) {
+            if (player_position[1] > 9 ) {
+                player_velocity[1]=-1;
+            } else {
+                player_velocity[1]=0;
+            }
         // Move down
-        } else if (joypad() & J_DOWN && player_position[1] < 136) {
-            player_velocity[1]=1;
+        } else if (joypad_state & J_DOWN) {
+            if (player_position[1] < 136) {
+                player_velocity[1]=1;
+            } else {
+                player_velocity[1]=0;
+            }
         // Stop vertical
         } else {
             player_velocity[1]=0;
@@ -90,7 +105,7 @@ void move_player() {
 
         // Horizontal
         // Move right
-        if (joypad() & J_RIGHT) {
+        if (joypad_state & J_RIGHT) {
             animate_player_right();
             if (player_position[0] < 156) {
                 player_velocity[0]=1;
@@ -98,7 +113,7 @@ void move_player() {
                 player_velocity[0]=0;
             }
         // Move left
-        } else if (joypad() & J_LEFT) {
+        } else if (joypad_state & J_LEFT) {
             animate_player_left();
             if (player_position[0] > 4) {
                 player_velocity[0]=-1;
@@ -108,9 +123,12 @@ void move_player() {
         // Stop horizontal
         } else {
             player_velocity[0]=0;
-            player_frame = 0;
-            set_sprite_tile(0, player_frame);
         }
+
+        // Reset to initial player frame
+        //if (!(joypad_state & J_UP || joypad_state & J_DOWN || joypad_state & J_RIGHT || joypad_state & J_LEFT)) {
+        //    player_frame = 0;
+        //}
 
         // Apply velocity
         player_position[0]+=player_velocity[0];
@@ -132,8 +150,10 @@ void main(void)
     // Loop forever
     while(1) {
 
-
 		// Game main loop processing goes here
+        // Only check the joypad state once per tick, per the docs
+        // https://gbdk-2020.github.io/gbdk-2020/docs/api/gb_8h.html#a176c477d759b814664785f3a0ad5e253
+        joypad_state = joypad();
         move_player();
 
 		// Done processing, yield CPU and wait for start of next frame
