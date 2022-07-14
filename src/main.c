@@ -77,10 +77,10 @@ void player_lose_stamina() {
     }
 }
 
-void animate_player_catching_breath() {
+void animate_player_catch_breath() {
     if (player_frame < 22) {
         player_frame = 22;
-    } else if (player_frame >= 32) {
+    } else if (player_frame > 32) {
         player_frame = 22;
     }
     if ((tick_counter % 8) == 0) {
@@ -88,11 +88,31 @@ void animate_player_catching_breath() {
     }
 }
 
+void animate_player_tap_foot() {
+    if (player_frame < 34) {
+        player_frame = 34;
+    } else if (player_frame > 36) {
+        player_frame = 34;
+    } else {
+        // player_frame = 0;
+    }
+    if ((tick_counter % 48) == 0) {
+        ++player_frame;
+    }
+}
+
+// This had 2 frames, but there seems to be a gbdk bug breaking frames past
+// index 38.
+void animate_player_check_watch() {
+    player_frame = 38;
+}
+
 void player_stop() {
     if (player_stamina < 255) {
-        animate_player_catching_breath();
+        animate_player_catch_breath();
     } else {
-        player_frame = 0;
+        animate_player_tap_foot();
+        // animate_player_check_watch();
     }
     player_gain_stamina();
 }
