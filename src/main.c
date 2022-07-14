@@ -6,11 +6,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+UINT8 tick_counter;
 UINT8 player_position[2];
 INT8 player_velocity[2];
 UINT8 player_frame;
+UINT8 player_stamina;
 uint8_t joypad_state;
-bool player_frame_op;
 
 void init_gfx() {
     // Turn the display on
@@ -28,7 +29,8 @@ void init_player() {
     player_position[1] = 136;
     // Starting animation frame
     player_frame = 0;
-    player_frame_op = 1;
+    // Starting player stamina
+    player_stamina = 255;
     // Enable large sprites
     SPRITES_8x16;
     // Load player sprite
@@ -45,38 +47,54 @@ void init_player() {
     SHOW_SPRITES;
 }
 
-void animate_player_right() {
-    if (player_frame >= 22) {
+void animate_horizontal() {
+    if (player_frame >= 21) {
         player_frame = 0;
-        player_frame_op = true;
-    } else if (player_frame == 21) {
-        player_frame_op = false;
-    } else if (player_frame == 0) {
-        player_frame_op = true;
     }
+    ++player_frame;
+}
 
-    if (player_frame_op == true) {
-        ++player_frame;
-    } else {
-        --player_frame;
-    }
+void animate_player_right() {
+    animate_horizontal();
+    set_sprite_prop(0, 0);
 }
 
 void animate_player_left() {
+    animate_horizontal();
+    // Mirror the sprite for moving left
+    set_sprite_prop(0, S_FLIPX);
+}
+
+void player_gain_stamina() {
+    if (player_stamina < 255 && (tick_counter % 2) == 0) {
+        ++player_stamina;
+    }
+}
+
+void player_lose_stamina() {
+    if (player_stamina > 0) {
+        --player_stamina;
+    }
+}
+
+void animate_player_catching_breath() {
     if (player_frame < 22) {
         player_frame = 22;
-        player_frame_op = true;
-    } else if (player_frame >= 39) {
-        player_frame_op = false;
-    } else if (player_frame == 22) {
-        player_frame_op = true;
+    } else if (player_frame >= 32) {
+        player_frame = 22;
     }
-
-    if (player_frame_op == true) {
+    if ((tick_counter % 8) == 0) {
         ++player_frame;
-    } else {
-        --player_frame;
     }
+}
+
+void player_stop() {
+    if (player_stamina < 255) {
+        animate_player_catching_breath();
+    } else {
+        player_frame = 0;
+    }
+    player_gain_stamina();
 }
 
 void move_player() {
@@ -89,6 +107,7 @@ void move_player() {
     if (joypad_state & J_UP) {
         if (player_position[1] > 9) {
             player_velocity[1] = -1;
+            player_lose_stamina();
         } else {
             player_velocity[1] = 0;
         }
@@ -96,6 +115,7 @@ void move_player() {
     } else if (joypad_state & J_DOWN) {
         if (player_position[1] < 136) {
             player_velocity[1] = 1;
+            player_lose_stamina();
         } else {
             player_velocity[1] = 0;
         }
@@ -110,6 +130,7 @@ void move_player() {
         animate_player_right();
         if (player_position[0] < 156) {
             player_velocity[0] = 1;
+            player_lose_stamina();
         } else {
             player_velocity[0] = 0;
         }
@@ -118,6 +139,7 @@ void move_player() {
         animate_player_left();
         if (player_position[0] > 4) {
             player_velocity[0] = -1;
+            player_lose_stamina();
         } else {
             player_velocity[0] = 0;
         }
@@ -127,10 +149,10 @@ void move_player() {
     }
 
     // Reset to initial player frame
-    // if (!(joypad_state & J_UP || joypad_state & J_DOWN || joypad_state &
-    // J_RIGHT || joypad_state & J_LEFT)) {
-    //    player_frame = 0;
-    //}
+    if (!(joypad_state & J_UP || joypad_state & J_DOWN ||
+          joypad_state & J_RIGHT || joypad_state & J_LEFT)) {
+        player_stop();
+    }
 
     // Apply velocity
     player_position[0] += player_velocity[0];
@@ -146,6 +168,7 @@ void move_player() {
 }
 
 void main(void) {
+    tick_counter = 0;
     init_gfx();
     init_player();
 
@@ -157,6 +180,7 @@ void main(void) {
         joypad_state = joypad();
         move_player();
 
+        ++tick_counter;
         // Done processing, yield CPU and wait for start of next frame
         wait_vbl_done();
     }
