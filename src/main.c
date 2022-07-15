@@ -47,20 +47,40 @@ void init_player() {
     SHOW_SPRITES;
 }
 
-void animate_horizontal() {
-    if (player_frame >= 21) {
-        player_frame = 0;
+void animate_player_horizontal() {
+    if (player_frame > 10) {
+        player_frame = 2;
     }
-    ++player_frame;
+    if ((tick_counter % 2) == 0) {
+        ++player_frame;
+    }
+}
+
+void animate_player_up() {
+    if (player_frame < 13 || player_frame > 16) {
+        player_frame = 13;
+    }
+    if ((tick_counter % 5) == 0) {
+        ++player_frame;
+    }
+}
+
+void animate_player_down() {
+    if (player_frame < 18 || player_frame > 22) {
+        player_frame = 18;
+    }
+    if ((tick_counter % 5) == 0) {
+        ++player_frame;
+    }
 }
 
 void animate_player_right() {
-    animate_horizontal();
+    animate_player_horizontal();
     set_sprite_prop(0, 0);
 }
 
 void animate_player_left() {
-    animate_horizontal();
+    animate_player_horizontal();
     // Mirror the sprite for moving left
     set_sprite_prop(0, S_FLIPX);
 }
@@ -78,10 +98,10 @@ void player_lose_stamina() {
 }
 
 void animate_player_catch_breath() {
-    if (player_frame < 22) {
-        player_frame = 22;
-    } else if (player_frame > 32) {
-        player_frame = 22;
+    if (player_frame < 24) {
+        player_frame = 24;
+    } else if (player_frame > 34) {
+        player_frame = 24;
     }
     if ((tick_counter % 8) == 0) {
         ++player_frame;
@@ -89,22 +109,16 @@ void animate_player_catch_breath() {
 }
 
 void animate_player_tap_foot() {
-    if (player_frame < 34) {
-        player_frame = 34;
-    } else if (player_frame > 36) {
-        player_frame = 34;
+    if (player_frame < 36) {
+        player_frame = 36;
+    } else if (player_frame > 38) {
+        player_frame = 36;
     } else {
         // player_frame = 0;
     }
     if ((tick_counter % 48) == 0) {
         ++player_frame;
     }
-}
-
-// This had 2 frames, but there seems to be a gbdk bug breaking frames past
-// index 38.
-void animate_player_check_watch() {
-    player_frame = 38;
 }
 
 void player_stop() {
@@ -125,17 +139,25 @@ void move_player() {
     // Vertical
     // Move up
     if (joypad_state & J_UP) {
+        // Favor horizontal animations since they have more frames
+        if (!(joypad_state & J_LEFT || joypad_state & J_RIGHT)) {
+            animate_player_up();
+        }
+        player_lose_stamina();
         if (player_position[1] > 9) {
             player_velocity[1] = -1;
-            player_lose_stamina();
         } else {
             player_velocity[1] = 0;
         }
         // Move down
     } else if (joypad_state & J_DOWN) {
+        // Favor horizontal animations since they have more frames
+        if (!(joypad_state & J_LEFT || joypad_state & J_RIGHT)) {
+            animate_player_down();
+        }
+        player_lose_stamina();
         if (player_position[1] < 136) {
             player_velocity[1] = 1;
-            player_lose_stamina();
         } else {
             player_velocity[1] = 0;
         }
@@ -148,18 +170,18 @@ void move_player() {
     // Move right
     if (joypad_state & J_RIGHT) {
         animate_player_right();
+        player_lose_stamina();
         if (player_position[0] < 156) {
             player_velocity[0] = 1;
-            player_lose_stamina();
         } else {
             player_velocity[0] = 0;
         }
         // Move left
     } else if (joypad_state & J_LEFT) {
         animate_player_left();
+        player_lose_stamina();
         if (player_position[0] > 4) {
             player_velocity[0] = -1;
-            player_lose_stamina();
         } else {
             player_velocity[0] = 0;
         }
